@@ -123,24 +123,31 @@ class _SubmitSuggestionScreenState extends State<SubmitSuggestionScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border:       Border.all(color: const Color(0xFFCFD8DC)),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _selectedCategory!,
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w700,
-                          fontSize:   16,
-                          color:      AppColors.textDark,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _selectedCategory!,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w700,
+                              fontSize:   15,
+                              color:      AppColors.textDark,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => setState(() => _selectedCategory = null),
-                        child: const Icon(Icons.close_rounded,
-                            size: 18, color: AppColors.textGrey),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => setState(() => _selectedCategory = null),
+                          child: const Icon(Icons.close_rounded,
+                              size: 18, color: AppColors.textGrey),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 

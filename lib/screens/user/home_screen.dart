@@ -336,6 +336,8 @@ class _ActionCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               subtitle,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.poppins(
                 color:    Colors.white70,
                 fontSize: 11,

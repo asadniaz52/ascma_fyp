@@ -197,6 +197,49 @@ class AuthService extends ChangeNotifier {
         .map((doc) => doc.exists ? UserModel.fromDocument(doc) : null);
   }
 
+  // ── Stream: All Users (Admin/Super Admin) ────────────────────────────────────
+  Stream<List<UserModel>> getAllUsers() {
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => UserModel.fromDocument(doc))
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  // ── Stream: All Admin Users (Super Admin) ───────────────────────────────────
+  Stream<List<UserModel>> getAdmins() {
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .where('role', isEqualTo: AppConstants.roleAdmin)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => UserModel.fromDocument(doc))
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  // ── Toggle User Active Status ────────────────────────────────────────────────
+  Future<bool> toggleUserStatus(String uid, bool currentStatus) async {
+    try {
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(uid)
+          .update({'isActive': !currentStatus});
+      return true;
+    } catch (e) {
+      debugPrint('AuthService.toggleUserStatus: $e');
+      return false;
+    }
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────────
   void _setLoading(bool value) {
     _isLoading = value;

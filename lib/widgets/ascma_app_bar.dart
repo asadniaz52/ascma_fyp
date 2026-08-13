@@ -39,9 +39,11 @@ class AscmaAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Row(
             children: [
               if (showMenu)
-                IconButton(
-                  icon: const Icon(Icons.menu, color: AppColors.textWhite),
-                  onPressed: onMenuTap ?? () => Scaffold.of(context).openDrawer(),
+                Builder(
+                  builder: (scaffoldCtx) => IconButton(
+                    icon: const Icon(Icons.menu, color: AppColors.textWhite),
+                    onPressed: onMenuTap ?? () => Scaffold.of(scaffoldCtx).openDrawer(),
+                  ),
                 ),
               const SizedBox(width: 4),
               Text(

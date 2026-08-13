@@ -49,6 +49,31 @@ class MySubmissionsScreen extends StatelessWidget {
                   );
                 }
 
+                if (snap.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.redCard),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Failed to load submissions',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 16),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Error: ${snap.error}',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textGrey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
                 final items = snap.data ?? [];
 
                 if (items.isEmpty) {
@@ -139,14 +164,18 @@ class _SubmissionCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        complaint.category,
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w700,
-                          fontSize:   14,
-                          color:      AppColors.textDark,
+                      Expanded(
+                        child: Text(
+                          complaint.category,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize:   14,
+                            color:      AppColors.textDark,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       StatusChip(status: complaint.status),
                     ],
                   ),

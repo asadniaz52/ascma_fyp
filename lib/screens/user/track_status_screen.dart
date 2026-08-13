@@ -225,6 +225,7 @@ class _DetailRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 110,
@@ -233,10 +234,12 @@ class _DetailRow extends StatelessWidget {
               style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textGrey),
             ),
           ),
-          Text(
-            ':  $value',
-            style: GoogleFonts.poppins(
-              fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
+          Expanded(
+            child: Text(
+              ':  $value',
+              style: GoogleFonts.poppins(
+                fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
+            ),
           ),
         ],
       ),

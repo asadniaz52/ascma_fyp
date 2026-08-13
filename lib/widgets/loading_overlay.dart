@@ -85,7 +85,7 @@ class _CategoryGridState extends State<CategoryGrid> {
             crossAxisCount:   2,
             crossAxisSpacing: 12,
             mainAxisSpacing:  12,
-            childAspectRatio: 2.4,
+            childAspectRatio: 2.1,
           ),
           itemCount: widget.categories.length,
           itemBuilder: (context, index) {
@@ -98,6 +98,7 @@ class _CategoryGridState extends State<CategoryGrid> {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color:        isSelected ? widget.headerColor.withOpacity(0.15) : AppColors.cardWhite,
                   borderRadius: BorderRadius.circular(10),
@@ -117,9 +118,11 @@ class _CategoryGridState extends State<CategoryGrid> {
                   child: Text(
                     cat,
                     textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.poppins(
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      fontSize:   13,
+                      fontSize:   12,
                       color:      isSelected ? widget.headerColor : AppColors.textDark,
                     ),
                   ),

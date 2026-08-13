@@ -129,27 +129,34 @@ class ComplaintService extends ChangeNotifier {
   /// - User   → their own complaints only
   /// - Admin  → complaints for their department
   /// - Super Admin → all complaints
-  Stream<List<ComplaintModel>> getComplaintsByRole(UserModel user) {
+  Stream<List<ComplaintModel>> getComplaintsByRole(UserModel user, {String? typeFilter, String? statusFilter}) {
     final collection = _firestore.collection(AppConstants.complaintsCollection);
 
     Query query;
 
     if (user.isSuperAdmin) {
-      query = collection.orderBy('createdAt', descending: true);
+      query = collection;
     } else if (user.isAdmin) {
-      query = collection
-          .where('department', isEqualTo: user.department)
-          .orderBy('createdAt', descending: true);
+      query = collection.where('department', isEqualTo: user.department);
     } else {
-      query = collection
-          .where('userId', isEqualTo: user.uid)
-          .orderBy('createdAt', descending: true);
+      query = collection.where('userId', isEqualTo: user.uid);
     }
 
     return query.snapshots().map((snapshot) {
-      return snapshot.docs
+      var items = snapshot.docs
           .map((doc) => ComplaintModel.fromDocument(doc))
           .toList();
+
+      if (typeFilter != null && typeFilter.isNotEmpty) {
+        items = items.where((i) => i.type.toLowerCase() == typeFilter.toLowerCase()).toList();
+      }
+
+      if (statusFilter != null && statusFilter.isNotEmpty) {
+        items = items.where((i) => i.status.toLowerCase() == statusFilter.toLowerCase()).toList();
+      }
+
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return items;
     });
   }
 
@@ -191,7 +198,45 @@ class ComplaintService extends ChangeNotifier {
     }
   }
 
-  // ── Analytics (Super Admin) ───────────────────────────────────────────────────
+  // ── Real-time Analytics (Admin & Super Admin) ──────────────────────────────
+  Stream<Map<String, int>> getRealtimeAnalytics([UserModel? user]) {
+    final collection = _firestore.collection(AppConstants.complaintsCollection);
+    Query query = collection;
+
+    if (user != null && user.isAdmin && !user.isSuperAdmin) {
+      query = collection.where('department', isEqualTo: user.department);
+    }
+
+    return query.snapshots().map((snapshot) {
+      final docs = snapshot.docs.map((d) => d.data() as Map<String, dynamic>).toList();
+
+      final pendingComplaints = docs.where((d) =>
+        (d['type']?.toString().toLowerCase() == 'complaint') &&
+        (d['status'] == AppConstants.statusPending)
+      ).length;
+
+      final pendingSuggestions = docs.where((d) =>
+        (d['type']?.toString().toLowerCase() == 'suggestion') &&
+        (d['status'] == AppConstants.statusPending)
+      ).length;
+
+      final resolved = docs.where((d) => d['status'] == AppConstants.statusResolved).length;
+      final inProgress = docs.where((d) => d['status'] == AppConstants.statusInProgress).length;
+      final rejected = docs.where((d) => d['status'] == AppConstants.statusRejected).length;
+
+      return {
+        'total':              docs.length,
+        'pending':            docs.where((d) => d['status'] == AppConstants.statusPending).length,
+        'pendingComplaints':  pendingComplaints,
+        'pendingSuggestions': pendingSuggestions,
+        'inProgress':         inProgress,
+        'resolved':           resolved,
+        'rejected':           rejected,
+      };
+    });
+  }
+
+  // ── Analytics (Super Admin - Future Fallback) ───────────────────────────────
   Future<Map<String, int>> getAnalytics() async {
     try {
       final snapshot = await _firestore
@@ -201,11 +246,13 @@ class ComplaintService extends ChangeNotifier {
       final docs = snapshot.docs.map((d) => d.data()).toList();
 
       return {
-        'total':      docs.length,
-        'pending':    docs.where((d) => d['status'] == AppConstants.statusPending).length,
-        'inProgress': docs.where((d) => d['status'] == AppConstants.statusInProgress).length,
-        'resolved':   docs.where((d) => d['status'] == AppConstants.statusResolved).length,
-        'rejected':   docs.where((d) => d['status'] == AppConstants.statusRejected).length,
+        'total':              docs.length,
+        'pending':            docs.where((d) => d['status'] == AppConstants.statusPending).length,
+        'pendingComplaints':  docs.where((d) => (d['type']?.toString().toLowerCase() == 'complaint') && (d['status'] == AppConstants.statusPending)).length,
+        'pendingSuggestions': docs.where((d) => (d['type']?.toString().toLowerCase() == 'suggestion') && (d['status'] == AppConstants.statusPending)).length,
+        'inProgress':         docs.where((d) => d['status'] == AppConstants.statusInProgress).length,
+        'resolved':           docs.where((d) => d['status'] == AppConstants.statusResolved).length,
+        'rejected':           docs.where((d) => d['status'] == AppConstants.statusRejected).length,
       };
     } catch (e) {
       debugPrint('ComplaintService.getAnalytics: $e');
