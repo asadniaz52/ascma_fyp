@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "996815007127",
+    "project_id": "ascma-2bfcd",
+    "storage_bucket": "ascma-2bfcd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:996815007127:android:13be48dcf601530a1ce8d2",
+        "android_client_info": {
+          "package_name": "com.example.ascma"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpgQ_MRhvSZlAWe_Tca9CzmexBMX6qwDk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
