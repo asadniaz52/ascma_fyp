@@ -57,22 +57,44 @@ class _TrackStatusScreenState extends State<TrackStatusScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Search Row ────────────────────────────────────────────────────
+            // ── Responsive Search Row (Zero Overflow) ───────────────────────
             Row(
               children: [
                 Expanded(
+                  flex: 3,
                   child: CustomTextField(
-                    hint:       'Enter Tracking ID',
+                    hint:       'Enter Tracking ID (e.g. ASC1234)',
                     prefixIcon: Icons.search_rounded,
                     controller: _trackingCtrl,
                   ),
                 ),
-                const SizedBox(width: 10),
-                PrimaryButton(
-                  text:      'Check Status',
-                  width:     120,
-                  height:    52,
-                  onPressed: _search,
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: _search,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Check Status',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -86,8 +108,11 @@ class _TrackStatusScreenState extends State<TrackStatusScreen> {
                 builder: (context, snap) {
                   if (snap.connectionState == ConnectionState.waiting) {
                     return const Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
+                      child: Padding(
+                        padding: EdgeInsets.all(30.0),
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
+                        ),
                       ),
                     );
                   }
@@ -118,7 +143,9 @@ class _TrackingResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('dd/MM/yyyy');
+    final fmt = DateFormat('dd MMM yyyy, hh:mm a');
+    final isReferred = complaint.status == AppConstants.statusReferred || complaint.referredToSuperAdmin;
+    final isResolved = complaint.status == AppConstants.statusResolved;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -126,45 +153,80 @@ class _TrackingResult extends StatelessWidget {
         color:        AppColors.cardWhite,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 12),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 12),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ─────────────────────────────────────────────────────────
+          // ── Header & Status Chip ───────────────────────────────────────────
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.check_circle_rounded,
-                  color: AppColors.greenCard, size: 28),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Submission Received',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w700,
-                        fontSize:   14,
-                        color:      AppColors.textDark,
-                      ),
+              Row(
+                children: [
+                  Icon(
+                    isResolved ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                    color: isResolved ? AppColors.greenCard : AppColors.primaryBlue,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Tracking: ${complaint.complaintId}',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w700,
+                      fontSize:   14,
+                      color:      AppColors.primaryBlue,
                     ),
-                    Text(
-                      'Your ${complaint.type} has been successfully received by the administration.',
-                      style: GoogleFonts.poppins(
-                          fontSize: 11, color: AppColors.textGrey),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              StatusChip(status: complaint.status),
             ],
           ),
 
-          const Divider(height: 24),
+          const Divider(height: 20),
+
+          // ── Referral Notice if applicable ─────────────────────────────────
+          if (isReferred) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3E5F5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFCE93D8)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.forward_to_inbox_rounded, color: Color(0xFF7B1FA2), size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Referred to University Administration',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: const Color(0xFF7B1FA2),
+                          ),
+                        ),
+                        Text(
+                          'The department administrator has escalated this issue to higher university authority for decision.',
+                          style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textDark),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           // ── Details ────────────────────────────────────────────────────────
-          _DetailRow(label: 'Tracking ID',   value: complaint.complaintId),
+          _DetailRow(label: 'Target Dept',   value: complaint.departmentName),
           _DetailRow(
             label: 'Submitted by',
             value: complaint.isAnonymous || complaint.userName == null || complaint.userName!.trim().isEmpty
@@ -172,10 +234,34 @@ class _TrackingResult extends StatelessWidget {
                 : complaint.userName!,
           ),
           _DetailRow(label: 'Submitted on',  value: fmt.format(complaint.createdAt)),
-          _DetailRow(label: 'Category',      value: complaint.type == 'complaint' ? 'Complaint' : 'Suggestion'),
-          _DetailRow(label: 'Sub-Category',  value: complaint.category),
+          _DetailRow(label: 'Category',      value: complaint.category),
+          _DetailRow(label: 'Type',          value: complaint.type.toUpperCase()),
+          _DetailRow(label: 'Priority',      value: complaint.priority),
 
-          const Divider(height: 24),
+          const Divider(height: 20),
+
+          // ── Official Response ──────────────────────────────────────────────
+          if (complaint.adminReply != null && complaint.adminReply!.isNotEmpty) ...[
+            Text(
+              'Official Administrative Response:',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textDark),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFBBDEFB)),
+              ),
+              child: Text(
+                complaint.adminReply!,
+                style: GoogleFonts.poppins(fontSize: 12, height: 1.4, color: AppColors.textDark),
+              ),
+            ),
+            const Divider(height: 24),
+          ],
 
           // ── Status Timeline ────────────────────────────────────────────────
           Text(
@@ -190,29 +276,29 @@ class _TrackingResult extends StatelessWidget {
 
           _TimelineStep(
             label:       'Submission',
-            description: 'Completed',
+            description: 'Received in system',
             isCompleted: true,
             color:       AppColors.greenCard,
           ),
           _TimelineStep(
-            label:       'Received by Admin',
-            description: 'Completed',
+            label:       'Assigned to ${complaint.departmentName}',
+            description: 'Department notified',
             isCompleted: true,
             color:       AppColors.greenCard,
           ),
           _TimelineStep(
-            label:       'Under Review',
+            label:       isReferred ? 'Escalated to University Administration' : 'Department Investigation',
             description: complaint.status == AppConstants.statusPending
-                ? 'Pending'
-                : 'Completed',
+                ? 'Under Review'
+                : (isReferred ? 'Referred for University Action' : 'In Progress'),
             isCompleted: complaint.status != AppConstants.statusPending,
-            color:       AppColors.pending,
+            color:       isReferred ? const Color(0xFF7B1FA2) : AppColors.primaryBlue,
           ),
           _TimelineStep(
-            label:       'Admin Response',
-            description: complaint.adminReply ?? 'No Response yet',
-            isCompleted: complaint.adminReply != null,
-            color:       AppColors.primaryBlue,
+            label:       'Resolution',
+            description: isResolved ? 'Resolved & Closed' : 'Pending final resolution',
+            isCompleted: isResolved,
+            color:       AppColors.greenCard,
             isLast:      true,
           ),
         ],
@@ -274,7 +360,6 @@ class _TimelineStep extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Timeline Line + Dot ──────────────────────────────────────────
           Column(
             children: [
               Container(
@@ -296,7 +381,7 @@ class _TimelineStep extends StatelessWidget {
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: isCompleted ? color.withOpacity(0.4) : const Color(0xFFCFD8DC),
+                    color: isCompleted ? color.withValues(alpha: 0.4) : const Color(0xFFCFD8DC),
                   ),
                 ),
             ],
@@ -345,7 +430,7 @@ class _NotFoundCard extends StatelessWidget {
         color:        AppColors.cardWhite,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10),
         ],
       ),
       child: Column(

@@ -84,9 +84,9 @@ class _ComplaintSubmittedScreenState extends State<ComplaintSubmittedScreen>
                   height: 120,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.greenCard.withOpacity(0.12),
+                    color: AppColors.greenCard.withValues(alpha: 0.12),
                     border: Border.all(
-                      color: AppColors.greenCard.withOpacity(0.4),
+                      color: AppColors.greenCard.withValues(alpha: 0.4),
                       width: 3,
                     ),
                   ),
@@ -133,10 +133,10 @@ class _ComplaintSubmittedScreenState extends State<ComplaintSubmittedScreen>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 24, vertical: 12),
                         decoration: BoxDecoration(
-                          color:        AppColors.primaryBlue.withOpacity(0.08),
+                          color:        AppColors.primaryBlue.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(30),
                           border:       Border.all(
-                              color: AppColors.primaryBlue.withOpacity(0.3)),
+                              color: AppColors.primaryBlue.withValues(alpha: 0.3)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -169,7 +169,7 @@ class _ComplaintSubmittedScreenState extends State<ComplaintSubmittedScreen>
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color:      Colors.black.withOpacity(0.06),
+                            color:      Colors.black.withValues(alpha: 0.06),
                             blurRadius: 10,
                           ),
                         ],

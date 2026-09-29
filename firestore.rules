@@ -1,0 +1,147 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserData().role == 'super_admin';
+    }
+
+    function isDepartmentAdmin() {
+      return isAuthenticated() && getUserData().role == 'department_admin';
+    }
+
+    function isGeneralAdmin() {
+      return isAuthenticated() && (getUserData().role == 'admin' || getUserData().role == 'general_admin');
+    }
+
+    function getAdminDepartmentId() {
+      return getUserData().departmentId;
+    }
+
+    // ─── Users Collection ──────────────────────────────────────────
+    match /users/{userId} {
+      // Any authenticated user can read their own profile; Super Admin can read all profiles
+      allow read: if isOwner(userId) || isSuperAdmin() || isDepartmentAdmin();
+
+      // Student registration: can create their own initial profile as 'student'
+      allow create: if isOwner(userId) && 
+        (request.resource.data.role == 'student' || !('role' in request.resource.data)) ||
+        isSuperAdmin();
+
+      // Updating profile: Users can update their own non-role fields; only Super Admin can change roles/departments
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role) || isSuperAdmin();
+
+      // Deletion: only Super Admin
+      allow delete: if isSuperAdmin();
+
+      // User Device Tokens
+      match /tokens/{tokenId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ─── Departments Collection ────────────────────────────────────
+    match /departments/{departmentId} {
+      // Authenticated users (students & admins) can read active departments
+      allow read: if isAuthenticated();
+
+      // Only Super Admin can create, modify, or delete departments
+      allow write: if isSuperAdmin();
+    }
+
+    // ─── Complaints Collection ─────────────────────────────────────
+    match /complaints/{complaintId} {
+      // Read access:
+      // 1. Student who submitted the complaint
+      // 2. Department Admin whose department matches the complaint
+      // 3. Super Admin ONLY if complaint is referred (referredToSuperAdmin == true)
+      // 4. Assigned General Admin if explicitly assigned
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        (isDepartmentAdmin() && resource.data.departmentId == getAdminDepartmentId()) ||
+        (isSuperAdmin() && resource.data.referredToSuperAdmin == true) ||
+        (isGeneralAdmin() && resource.data.assignedAdminId == request.auth.uid)
+      );
+
+      // Create access:
+      // Students can submit a complaint targeting any active department
+      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+
+      // Update access:
+      // 1. Department Admin can update complaints belonging to their own department (status, response, refer to super admin)
+      // 2. Super Admin can update complaints that are referred to Super Admin
+      // 3. Student can update only if it's their complaint and status is pending (e.g. withdraw/edit)
+      allow update: if isAuthenticated() && (
+        (isDepartmentAdmin() && resource.data.departmentId == getAdminDepartmentId()) ||
+        (isSuperAdmin() && (resource.data.referredToSuperAdmin == true || request.resource.data.referredToSuperAdmin == true)) ||
+        (resource.data.studentId == request.auth.uid && resource.data.status == 'Pending')
+      );
+
+      // Delete access: only Super Admin or owner if pending
+      allow delete: if isSuperAdmin() || (isAuthenticated() && resource.data.studentId == request.auth.uid && resource.data.status == 'Pending');
+
+      // Audit History Subcollection
+      match /history/{historyId} {
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/complaints/$(complaintId)).data.studentId == request.auth.uid ||
+          (isDepartmentAdmin() && get(/databases/$(database)/documents/complaints/$(complaintId)).data.departmentId == getAdminDepartmentId()) ||
+          (isSuperAdmin() && get(/databases/$(database)/documents/complaints/$(complaintId)).data.referredToSuperAdmin == true)
+        );
+        allow create: if isAuthenticated();
+      }
+    }
+
+    // ─── Suggestions Collection ────────────────────────────────────
+    match /suggestions/{suggestionId} {
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        (isDepartmentAdmin() && resource.data.departmentId == getAdminDepartmentId()) ||
+        isSuperAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        (isDepartmentAdmin() && resource.data.departmentId == getAdminDepartmentId()) ||
+        isSuperAdmin()
+      );
+      allow delete: if isSuperAdmin();
+    }
+
+    // ─── Notifications Collection ──────────────────────────────────
+    match /notifications/{notificationId} {
+      // User can read their own notifications
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Any authenticated user or admin triggering a workflow event can create a notification
+      allow create: if isAuthenticated();
+
+      // User can mark their own notification as read
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // User can delete their own notifications
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // ─── Admin Assignments Collection ──────────────────────────────
+    match /adminAssignments/{assignmentId} {
+      allow read: if isAuthenticated() && (
+        isSuperAdmin() ||
+        resource.data.adminId == request.auth.uid
+      );
+      allow write: if isSuperAdmin();
+    }
+  }
+}

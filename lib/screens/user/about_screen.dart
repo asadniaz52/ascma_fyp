@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
 import '../../widgets/widgets.dart';
+import '../auth/onboarding_screen.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -26,7 +27,7 @@ class AboutScreen extends StatelessWidget {
                 gradient: AppColors.primaryGradient,
                 boxShadow: [
                   BoxShadow(
-                    color:      AppColors.primaryBlue.withOpacity(0.3),
+                    color:      AppColors.primaryBlue.withValues(alpha: 0.3),
                     blurRadius: 20,
                     offset:     const Offset(0, 6),
                   ),
@@ -83,6 +84,34 @@ class AboutScreen extends StatelessWidget {
                   '• You may delete your submissions at any time.',
             ),
 
+            const SizedBox(height: 20),
+
+            // ── View Onboarding Guide ───────────────────────────────────────────
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const OnboardingScreen(isViewingAgain: true),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.menu_book_rounded, size: 18, color: AppColors.primaryBlue),
+              label: Text(
+                'View App Walkthrough Guide',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryBlue,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.primaryBlue),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+            ),
+
             const SizedBox(height: 24),
 
             const PrivacyBadge(),
@@ -123,7 +152,7 @@ class _InfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withOpacity(0.06),
+            color:      Colors.black.withValues(alpha: 0.06),
             blurRadius: 8,
           ),
         ],

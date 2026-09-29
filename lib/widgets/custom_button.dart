@@ -26,18 +26,19 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width:  width ?? double.infinity,
+      width:  width,
       height: height,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: color ?? AppColors.primaryBlue,
           foregroundColor: AppColors.textWhite,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
           elevation: 3,
-          shadowColor: (color ?? AppColors.primaryBlue).withOpacity(0.4),
+          shadowColor: (color ?? AppColors.primaryBlue).withValues(alpha: 0.4),
         ),
         child: isLoading
             ? const SizedBox(
@@ -50,18 +51,25 @@ class PrimaryButton extends StatelessWidget {
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   if (icon != null) ...[
                     Icon(icon, size: 18),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                   ],
-                  Text(
-                    text,
-                    style: GoogleFonts.poppins(
-                      fontSize:   15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8,
-                      color: Colors.white,
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        text,
+                        maxLines: 1,
+                        style: GoogleFonts.poppins(
+                          fontSize:   14,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -89,22 +97,27 @@ class OutlineBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width:  width ?? double.infinity,
+      width:  width,
       height: 52,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
           side: BorderSide(color: borderColor ?? AppColors.primaryBlue, width: 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
         ),
-        child: Text(
-          text,
-          style: GoogleFonts.poppins(
-            fontSize:   15,
-            fontWeight: FontWeight.w600,
-            color:      borderColor ?? AppColors.primaryBlue,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            text,
+            maxLines: 1,
+            style: GoogleFonts.poppins(
+              fontSize:   14,
+              fontWeight: FontWeight.w600,
+              color:      borderColor ?? AppColors.primaryBlue,
+            ),
           ),
         ),
       ),

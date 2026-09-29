@@ -21,7 +21,6 @@ class AuthService extends ChangeNotifier {
   bool       get isLoggedIn    => _firebaseUser != null;
 
   AuthService() {
-    // Listen to auth state changes
     _auth.authStateChanges().listen(_onAuthStateChanged);
   }
 
@@ -50,13 +49,16 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // ── Sign Up ───────────────────────────────────────────────────────────────────
-  /// Creates a Firebase Auth account and saves user profile in Firestore.
-  /// Default role is 'user'.
+  // ── Sign Up (Student) ────────────────────────────────────────────────────────
+  /// Creates a student Firebase Auth account and stores profile with mandatory department.
   Future<String?> signUpWithEmail({
     required String name,
+    required String studentId,
     required String email,
     required String password,
+    required String departmentId,
+    required String departmentName,
+    String? phone,
   }) async {
     _setLoading(true);
     try {
@@ -68,12 +70,16 @@ class AuthService extends ChangeNotifier {
       await credential.user?.updateDisplayName(name.trim());
 
       final user = UserModel(
-        uid:       credential.user!.uid,
-        name:      name.trim(),
-        email:     email.trim(),
-        role:      AppConstants.roleUser,
-        createdAt: DateTime.now(),
-        isActive:  true,
+        uid:            credential.user!.uid,
+        name:           name.trim(),
+        studentId:      studentId.trim(),
+        email:          email.trim(),
+        role:           AppConstants.roleStudent,
+        departmentId:   departmentId.trim(),
+        departmentName: departmentName.trim(),
+        phone:          phone?.trim(),
+        createdAt:      DateTime.now(),
+        isActive:       true,
       );
 
       await _firestore
@@ -83,7 +89,7 @@ class AuthService extends ChangeNotifier {
 
       _currentUser = user;
       _setLoading(false);
-      return null; // null = success
+      return null; // success
     } on FirebaseAuthException catch (e) {
       _setLoading(false);
       return _mapAuthError(e.code);
@@ -94,7 +100,6 @@ class AuthService extends ChangeNotifier {
   }
 
   // ── Login ─────────────────────────────────────────────────────────────────────
-  /// Authenticates user and fetches role from Firestore.
   Future<String?> loginWithEmail({
     required String email,
     required String password,
@@ -107,8 +112,17 @@ class AuthService extends ChangeNotifier {
       );
 
       await _fetchUserProfile(credential.user!.uid);
+
+      if (_currentUser != null && !_currentUser!.isActive) {
+        await _auth.signOut();
+        _currentUser = null;
+        _firebaseUser = null;
+        _setLoading(false);
+        return 'This account has been deactivated by the administrator.';
+      }
+
       _setLoading(false);
-      return null; // null = success
+      return null; // success
     } on FirebaseAuthException catch (e) {
       _setLoading(false);
       return _mapAuthError(e.code);
@@ -142,20 +156,22 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Create Admin (Super Admin only) ───────────────────────────────────────────
+  // ── Create Admin Account (Super Admin only) ──────────────────────────────────
   Future<String?> createAdminAccount({
     required String name,
     required String email,
     required String password,
-    required String department,
+    required String role,
+    String? departmentId,
+    String? departmentName,
   }) async {
     _setLoading(true);
     try {
-      // Create secondary auth instance to avoid signing out current super admin
       final FirebaseApp secondaryApp = await Firebase.initializeApp(
-        name: 'SecondaryApp',
+        name: 'SecondaryApp_${DateTime.now().millisecondsSinceEpoch}',
         options: Firebase.app().options,
       );
+
       final credential = await FirebaseAuth.instanceFor(app: secondaryApp)
           .createUserWithEmailAndPassword(
             email:    email.trim(),
@@ -164,12 +180,14 @@ class AuthService extends ChangeNotifier {
       await secondaryApp.delete();
 
       final admin = UserModel(
-        uid:        credential.user!.uid,
-        name:       name.trim(),
-        email:      email.trim(),
-        role:       AppConstants.roleAdmin,
-        department: department,
-        createdAt:  DateTime.now(),
+        uid:            credential.user!.uid,
+        name:           name.trim(),
+        email:          email.trim(),
+        role:           role,
+        departmentId:   departmentId,
+        departmentName: departmentName,
+        createdAt:      DateTime.now(),
+        isActive:       true,
       );
 
       await _firestore
@@ -184,20 +202,34 @@ class AuthService extends ChangeNotifier {
       return _mapAuthError(e.code);
     } catch (e) {
       _setLoading(false);
-      return 'Failed to create admin account.';
+      return 'Failed to create admin account: $e';
     }
   }
 
-  // ── Stream: Real-time user profile ───────────────────────────────────────────
-  Stream<UserModel?> userStream(String uid) {
-    return _firestore
-        .collection(AppConstants.usersCollection)
-        .doc(uid)
-        .snapshots()
-        .map((doc) => doc.exists ? UserModel.fromDocument(doc) : null);
+  // ── Update Admin Details (Super Admin only) ──────────────────────────────────
+  Future<bool> updateAdminAccount({
+    required String uid,
+    required String name,
+    required String role,
+    String? departmentId,
+    String? departmentName,
+  }) async {
+    try {
+      await _firestore.collection(AppConstants.usersCollection).doc(uid).update({
+        'name':           name.trim(),
+        'role':           role,
+        'departmentId':   departmentId,
+        'departmentName': departmentName,
+        'department':     departmentName ?? departmentId,
+      });
+      return true;
+    } catch (e) {
+      debugPrint('AuthService.updateAdminAccount: $e');
+      return false;
+    }
   }
 
-  // ── Stream: All Users (Admin/Super Admin) ────────────────────────────────────
+  // ── Stream: All Users (Super Admin) ─────────────────────────────────────────
   Stream<List<UserModel>> getAllUsers() {
     return _firestore
         .collection(AppConstants.usersCollection)
@@ -211,15 +243,30 @@ class AuthService extends ChangeNotifier {
     });
   }
 
-  // ── Stream: All Admin Users (Super Admin) ───────────────────────────────────
-  Stream<List<UserModel>> getAdmins() {
+  // ── Stream: All Students ─────────────────────────────────────────────────────
+  Stream<List<UserModel>> getStudents() {
     return _firestore
         .collection(AppConstants.usersCollection)
-        .where('role', isEqualTo: AppConstants.roleAdmin)
         .snapshots()
         .map((snapshot) {
       final list = snapshot.docs
           .map((doc) => UserModel.fromDocument(doc))
+          .where((u) => u.isStudent)
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  // ── Stream: All Admins (Super Admin) ─────────────────────────────────────────
+  Stream<List<UserModel>> getAdmins() {
+    return _firestore
+        .collection(AppConstants.usersCollection)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => UserModel.fromDocument(doc))
+          .where((u) => u.isAdmin || u.isSuperAdmin)
           .toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
@@ -270,3 +317,4 @@ class AuthService extends ChangeNotifier {
     }
   }
 }
+

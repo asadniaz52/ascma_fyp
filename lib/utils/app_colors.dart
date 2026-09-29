@@ -14,10 +14,12 @@ class AppColors {
   static const Color orangeStatus   = Color(0xFFFF8F00);
   static const Color tealHeader     = Color(0xFF00838F);
 
-  // Backgrounds
+  // Backgrounds & Borders
   static const Color scaffoldBg     = Color(0xFFF5F6FA);
   static const Color cardWhite      = Color(0xFFFFFFFF);
   static const Color surfaceGrey    = Color(0xFFECEFF1);
+  static const Color borderGrey     = Color(0xFFCFD8DC);
+  static const Color dividerGrey    = Color(0xFFE0E0E0);
 
   // Text
   static const Color textDark       = Color(0xFF1A1A2E);

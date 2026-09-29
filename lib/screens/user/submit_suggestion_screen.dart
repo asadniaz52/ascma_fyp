@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/department_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/complaint_service.dart';
+import '../../services/department_service.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/constants.dart';
 import '../../widgets/widgets.dart';
@@ -19,10 +21,12 @@ class SubmitSuggestionScreen extends StatefulWidget {
 }
 
 class _SubmitSuggestionScreenState extends State<SubmitSuggestionScreen> {
-  String?     _selectedCategory;
-  final _descCtrl = TextEditingController();
-  File?       _imageFile;
-  bool        _isSubmitting = false;
+  String?          _selectedCategory;
+  DepartmentModel? _selectedDepartment;
+  bool             _isAnonymous = true;
+  final _descCtrl  = TextEditingController();
+  File?            _imageFile;
+  bool             _isSubmitting = false;
 
   @override
   void dispose() {
@@ -41,6 +45,10 @@ class _SubmitSuggestionScreenState extends State<SubmitSuggestionScreen> {
       _showSnack('Please select a suggestion category', isError: true);
       return;
     }
+    if (_selectedDepartment == null) {
+      _showSnack('Please select the target department', isError: true);
+      return;
+    }
     if (_descCtrl.text.trim().isEmpty) {
       _showSnack('Please describe your suggestion', isError: true);
       return;
@@ -53,14 +61,17 @@ class _SubmitSuggestionScreenState extends State<SubmitSuggestionScreen> {
     final user             = authService.currentUser;
 
     final trackingId = await complaintService.submitComplaint(
-      userId:      user?.uid ?? AppConstants.anonymousId,
-      userName:    user?.name,
-      description: _descCtrl.text.trim(),
-      category:    _selectedCategory!,
-      type:        'suggestion',
-      department:  'Administration',
-      isAnonymous: user == null,
-      imageFile:   _imageFile,
+      userId:         user?.uid ?? AppConstants.anonymousId,
+      userName:       user?.name,
+      studentRegNo:   user?.studentId,
+      description:    _descCtrl.text.trim(),
+      category:       _selectedCategory!,
+      type:           'suggestion',
+      departmentId:   _selectedDepartment!.departmentId,
+      departmentName: _selectedDepartment!.name,
+      priority:       AppConstants.priorityNormal,
+      isAnonymous:    _isAnonymous,
+      imageFile:      _imageFile,
     );
 
     setState(() => _isSubmitting = false);
@@ -109,48 +120,101 @@ class _SubmitSuggestionScreenState extends State<SubmitSuggestionScreen> {
               if (_selectedCategory == null) ...[
                 CategoryGrid(
                   categories:  AppConstants.suggestionCategories,
-                  headerTitle: 'Suggestion Categories',
+                  headerTitle: 'Select Suggestion Category',
                   headerColor: AppColors.greenCard,
                   onSelected:  (cat) => setState(() => _selectedCategory = cat),
                 ),
               ] else ...[
+                // ── Category Header ─────────────────────────────────────────
                 Container(
                   width:   double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
                   margin:  const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color:        AppColors.surfaceGrey,
+                    color:        const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(12),
-                    border:       Border.all(color: const Color(0xFFCFD8DC)),
+                    border:       Border.all(color: const Color(0xFFC8E6C9)),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Flexible(
-                          child: Text(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.lightbulb_rounded, color: AppColors.greenCard, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
                             _selectedCategory!,
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w700,
-                              fontSize:   15,
-                              color:      AppColors.textDark,
+                              fontSize:   14,
+                              color:      AppColors.greenCard,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => setState(() => _selectedCategory = null),
-                          child: const Icon(Icons.close_rounded,
-                              size: 18, color: AppColors.textGrey),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                      GestureDetector(
+                        onTap: () => setState(() => _selectedCategory = null),
+                        child: const Icon(Icons.close_rounded, size: 18, color: AppColors.textGrey),
+                      ),
+                    ],
                   ),
                 ),
 
+                // ── Department Dropdown ─────────────────────────────────────
+                Text(
+                  'Target Department *',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textDark),
+                ),
+                const SizedBox(height: 6),
+                StreamBuilder<List<DepartmentModel>>(
+                  stream: context.read<DepartmentService>().getDepartmentsStream(onlyActive: true),
+                  builder: (context, snapshot) {
+                    final depts = snapshot.data ?? [];
+                    DepartmentModel? currentVal;
+                    if (_selectedDepartment != null &&
+                        depts.any((d) => d.departmentId == _selectedDepartment!.departmentId)) {
+                      currentVal = depts.firstWhere((d) => d.departmentId == _selectedDepartment!.departmentId);
+                    }
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color:        AppColors.cardWhite,
+                        borderRadius: BorderRadius.circular(12),
+                        border:       Border.all(color: const Color(0xFFCFD8DC)),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<DepartmentModel>(
+                          isExpanded: true,
+                          hint: Text(
+                            'Choose Department for Suggestion',
+                            style: GoogleFonts.poppins(color: AppColors.textGrey, fontSize: 13),
+                          ),
+                          value: currentVal,
+                          items: depts.map((d) {
+                            return DropdownMenuItem<DepartmentModel>(
+                              value: d,
+                              child: Text(
+                                d.name,
+                                style: GoogleFonts.poppins(fontSize: 13, color: AppColors.textDark),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) => setState(() => _selectedDepartment = val),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── Description ─────────────────────────────────────────────
+                Text(
+                  'Suggestion Details *',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textDark),
+                ),
+                const SizedBox(height: 6),
                 Container(
                   decoration: BoxDecoration(
                     color:        AppColors.cardWhite,
@@ -158,43 +222,77 @@ class _SubmitSuggestionScreenState extends State<SubmitSuggestionScreen> {
                     border:       Border.all(color: const Color(0xFFCFD8DC)),
                   ),
                   child: TextField(
-                    controller: _descCtrl,
-                    maxLines:   6,
-                    maxLength:  500,
-                    onChanged:  (_) => setState(() {}),
-                    style:      GoogleFonts.poppins(fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText:       'Briefly describe your suggestion',
-                      hintStyle:      GoogleFonts.poppins(
-                          color: AppColors.textGrey, fontSize: 13),
-                      border:         InputBorder.none,
-                      contentPadding: const EdgeInsets.all(16),
+                    controller:  _descCtrl,
+                    maxLines:    5,
+                    maxLength:   500,
+                    onChanged:   (_) => setState(() {}),
+                    style:       GoogleFonts.poppins(fontSize: 13),
+                    decoration:  InputDecoration(
+                      hintText:        'Describe your constructive proposal/idea for improvement...',
+                      hintStyle:       GoogleFonts.poppins(color: AppColors.textGrey, fontSize: 13),
+                      border:          InputBorder.none,
+                      contentPadding:  const EdgeInsets.all(14),
+                      counterStyle:    GoogleFonts.poppins(fontSize: 11, color: AppColors.textGrey),
                     ),
-                    buildCounter: (_, {required currentLength, required isFocused, maxLength}) =>
-                        Padding(
-                          padding: const EdgeInsets.only(right: 12, bottom: 4),
-                          child: Text(
-                            '$currentLength / ${maxLength ?? 500} characters',
-                            style: GoogleFonts.poppins(
-                                fontSize: 11, color: AppColors.textGrey),
-                          ),
-                        ),
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                if (_imageFile != null)
+                // ── Anonymous Toggle Card ───────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _isAnonymous ? const Color(0xFFE8F5E9) : AppColors.cardWhite,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isAnonymous ? AppColors.greenCard : const Color(0xFFCFD8DC),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isAnonymous ? Icons.lock_outline_rounded : Icons.person_outline_rounded,
+                        size: 20,
+                        color: _isAnonymous ? AppColors.greenCard : AppColors.primaryBlue,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _isAnonymous ? 'Submit Anonymously' : 'Submit with Student Identity',
+                              style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 12),
+                            ),
+                            Text(
+                              _isAnonymous ? 'Your name and reg number will remain hidden' : 'Your name will be visible to administration',
+                              style: GoogleFonts.poppins(fontSize: 10, color: AppColors.textGrey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: _isAnonymous,
+                        activeThumbColor: AppColors.greenCard,
+                        onChanged: (v) => setState(() => _isAnonymous = v),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                if (_imageFile != null) ...[
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(_imageFile!,
-                        height: 160, width: double.infinity, fit: BoxFit.cover),
+                    child: Image.file(_imageFile!, height: 150, width: double.infinity, fit: BoxFit.cover),
                   ),
-
-                const SizedBox(height: 12),
+                  const SizedBox(height: 10),
+                ],
 
                 PrimaryButton(
-                  text:  '⬆  Upload Image',
+                  text:  _imageFile != null ? 'Change Attachment' : '⬆  Attach Supporting Document/Image',
                   color: AppColors.primaryDark,
                   onPressed: _pickImage,
                 ),
@@ -202,15 +300,17 @@ class _SubmitSuggestionScreenState extends State<SubmitSuggestionScreen> {
                 const SizedBox(height: 12),
 
                 PrimaryButton(
-                  text:      'Submit',
+                  text:      'Submit Suggestion',
                   isLoading: _isSubmitting,
-                  color:     const Color(0xFFB0BEC5),
+                  color:     AppColors.greenCard,
                   onPressed: _submit,
                 ),
               ],
 
               const SizedBox(height: 20),
+
               const PrivacyBadge(),
+
               const SizedBox(height: 16),
             ],
           ),
@@ -227,12 +327,16 @@ Widget _bottomNav(BuildContext context) {
     type:                 BottomNavigationBarType.fixed,
     selectedItemColor:    AppColors.primaryBlue,
     unselectedItemColor:  AppColors.textGrey,
+    selectedLabelStyle:   GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600),
+    unselectedLabelStyle: GoogleFonts.poppins(fontSize: 11),
     items: const [
       BottomNavigationBarItem(icon: Icon(Icons.home_rounded),           label: 'Home'),
       BottomNavigationBarItem(icon: Icon(Icons.description_outlined),   label: 'Submit'),
       BottomNavigationBarItem(icon: Icon(Icons.search_rounded),          label: 'Track'),
       BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), label: 'About'),
     ],
-    onTap: (i) { if (i == 0) Navigator.pop(context); },
+    onTap: (i) {
+      if (i == 0) Navigator.pop(context);
+    },
   );
 }

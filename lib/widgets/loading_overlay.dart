@@ -100,7 +100,7 @@ class _CategoryGridState extends State<CategoryGrid> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color:        isSelected ? widget.headerColor.withOpacity(0.15) : AppColors.cardWhite,
+                  color:        isSelected ? widget.headerColor.withValues(alpha: 0.15) : AppColors.cardWhite,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isSelected ? widget.headerColor : const Color(0xFFCFD8DC),
@@ -108,7 +108,7 @@ class _CategoryGridState extends State<CategoryGrid> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color:       Colors.black.withOpacity(0.06),
+                      color:       Colors.black.withValues(alpha: 0.06),
                       blurRadius:  6,
                       offset:      const Offset(0, 2),
                     ),
@@ -182,9 +182,9 @@ class _StatItem extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color:        color.withOpacity(0.08),
+          color:        color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border:       Border.all(color: color.withOpacity(0.2)),
+          border:       Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [

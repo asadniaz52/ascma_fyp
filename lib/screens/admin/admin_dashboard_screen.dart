@@ -1,4 +1,4 @@
-// ─── Admin Dashboard Screen ────────────────────────────────────────────────────
+// ─── Department Admin Dashboard Screen ─────────────────────────────────────────
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,25 +20,27 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
-  int _currentViewIndex = 0; // 0: Dashboard, 1: Complaints, 2: Suggestions, 3: Users, 4: Admins, 5: Reports, 6: Notifications
+  int _currentViewIndex = 0; // 0: Overview, 1: Complaints, 2: Suggestions, 3: Referred, 4: Reports, 5: Notifications
   int _bottomNavIndex = 0;
   String _statusFilter = '';
 
   void _onBottomNavTap(int index) {
     setState(() {
       _bottomNavIndex = index;
-      if (index == 0) _currentViewIndex = 1; // Complaints
-      if (index == 1) _currentViewIndex = 2; // Suggestions
-      if (index == 2) _currentViewIndex = 3; // Users
+      if (index == 0) _currentViewIndex = 0; // Overview
+      if (index == 1) _currentViewIndex = 1; // Complaints
+      if (index == 2) _currentViewIndex = 2; // Suggestions
+      if (index == 3) _currentViewIndex = 4; // Reports
     });
   }
 
   void _switchView(int index) {
     setState(() {
       _currentViewIndex = index;
-      if (index == 1) _bottomNavIndex = 0;
-      if (index == 2) _bottomNavIndex = 1;
-      if (index == 3) _bottomNavIndex = 2;
+      if (index == 0) _bottomNavIndex = 0;
+      if (index == 1) _bottomNavIndex = 1;
+      if (index == 2) _bottomNavIndex = 2;
+      if (index == 4) _bottomNavIndex = 3;
     });
   }
 
@@ -63,14 +65,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   String _getViewTitle() {
     switch (_currentViewIndex) {
-      case 0: return 'Admin Dashboard';
-      case 1: return 'Manage Complaints';
-      case 2: return 'Review Suggestions';
-      case 3: return 'User Management';
-      case 4: return 'Admin Management';
-      case 5: return 'Reports & Analytics';
-      case 6: return 'System Notifications';
-      default: return 'Admin Panel';
+      case 0: return 'Department Overview';
+      case 1: return 'Department Complaints';
+      case 2: return 'Department Suggestions';
+      case 3: return 'Referred Submissions';
+      case 4: return 'Reports & Analytics';
+      case 5: return 'Department Notifications';
+      default: return 'Department Admin';
     }
   }
 
@@ -79,10 +80,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       case 0: return _buildDashboardOverview(user);
       case 1: return _buildComplaintsView(user, type: 'complaint');
       case 2: return _buildComplaintsView(user, type: 'suggestion');
-      case 3: return _buildUserManagementView();
-      case 4: return _buildAdminManagementView();
-      case 5: return _buildReportsView(user);
-      case 6: return _buildNotificationsLogView(user);
+      case 3: return _buildReferredView(user);
+      case 4: return _buildReportsView(user);
+      case 5: return _buildNotificationsLogView(user);
       default: return _buildDashboardOverview(user);
     }
   }
@@ -94,100 +94,133 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Greeting Header
-          Text(
-            'Hello, ${user.name} 👋',
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w700,
-              fontSize: 20,
-              color: AppColors.textDark,
+          // Greeting & Department Header Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(color: AppColors.primaryDark.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Welcome, ${user.name}',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Dept Admin',
+                        style: GoogleFonts.poppins(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.apartment_rounded, color: Colors.white70, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Department: ${user.departmentName ?? user.departmentId ?? "General"}',
+                        style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          Text(
-            'Department: ${user.department ?? "General Administration"}',
-            style: GoogleFonts.poppins(
-              color: AppColors.primaryBlue,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          // Real-time Stat Cards Grid
+          // Real-time Stat Cards Grid (Filtered for this Department Only)
           StreamBuilder<Map<String, int>>(
             stream: context.read<ComplaintService>().getRealtimeAnalytics(user),
             builder: (context, snapAnalytics) {
               final stats = snapAnalytics.data ?? {};
-              return StreamBuilder<List<UserModel>>(
-                stream: context.read<AuthService>().getAllUsers(),
-                builder: (context, snapUsers) {
-                  final totalUsersCount = (snapUsers.data ?? []).length;
-                  return Column(
+              return Column(
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _DashboardStatCard(
-                              title: 'Pending\nComplaints',
-                              value: '${stats['pendingComplaints'] ?? 0}',
-                              color: const Color(0xFFEF5350),
-                              icon: Icons.campaign_rounded,
-                              onTap: () => _switchView(1),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _DashboardStatCard(
-                              title: 'Pending\nSuggestions',
-                              value: '${stats['pendingSuggestions'] ?? 0}',
-                              color: const Color(0xFF26A69A),
-                              icon: Icons.lightbulb_rounded,
-                              onTap: () => _switchView(2),
-                            ),
-                          ),
-                        ],
+                      Expanded(
+                        child: _DashboardStatCard(
+                          title: 'Pending\nComplaints',
+                          value: '${stats['pendingComplaints'] ?? 0}',
+                          color: const Color(0xFFEF5350),
+                          icon: Icons.campaign_rounded,
+                          onTap: () => _switchView(1),
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _DashboardStatCard(
-                              title: 'Total\nUsers',
-                              value: '$totalUsersCount',
-                              color: const Color(0xFF7E57C2),
-                              icon: Icons.person_rounded,
-                              onTap: () => _switchView(3),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _DashboardStatCard(
-                              title: 'Resolved\nCases',
-                              value: '${stats['resolved'] ?? 0}',
-                              color: const Color(0xFF66BB6A),
-                              icon: Icons.check_circle_outline_rounded,
-                              onTap: () => _switchView(1),
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _DashboardStatCard(
+                          title: 'Pending\nSuggestions',
+                          value: '${stats['pendingSuggestions'] ?? 0}',
+                          color: const Color(0xFF26A69A),
+                          icon: Icons.lightbulb_rounded,
+                          onTap: () => _switchView(2),
+                        ),
                       ),
                     ],
-                  );
-                },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _DashboardStatCard(
+                          title: 'Under Process\n(In Progress)',
+                          value: '${stats['inProgress'] ?? 0}',
+                          color: AppColors.primaryBlue,
+                          icon: Icons.sync_rounded,
+                          onTap: () => _switchView(1),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _DashboardStatCard(
+                          title: 'Referred to\nSuper Admin',
+                          value: '${stats['referred'] ?? 0}',
+                          color: const Color(0xFF7B1FA2),
+                          icon: Icons.forward_to_inbox_rounded,
+                          onTap: () => _switchView(3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               );
             },
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
 
-          // Recent Submissions Header
+          // Recent Submissions Section
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Recent Submissions',
+                'Recent Department Submissions',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 15,
                   color: AppColors.textDark,
                 ),
               ),
@@ -205,7 +238,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ],
           ),
 
-          // Real Submissions Stream
+          // Submissions Stream
           StreamBuilder<List<ComplaintModel>>(
             stream: context.read<ComplaintService>().getComplaintsByRole(user),
             builder: (context, snap) {
@@ -218,79 +251,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               final items = snap.data ?? [];
               if (items.isEmpty) {
                 return Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: Text('No submissions received yet.',
-                        style: GoogleFonts.poppins(color: AppColors.textGrey, fontSize: 13)),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.inbox_outlined, size: 40, color: AppColors.textGrey),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No submissions received for ${user.departmentName ?? "your department"} yet.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(color: AppColors.textGrey, fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }
               final recent = items.take(4).toList();
               return Column(
-                children: recent.map((item) => _buildSubmissionTile(context, item)).toList(),
-              );
-            },
-          ),
-
-          const SizedBox(height: 20),
-
-          // Recent Users Activity Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Registered Users',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: AppColors.textDark,
-                ),
-              ),
-              TextButton(
-                onPressed: () => _switchView(3),
-                child: Text(
-                  'View All >',
-                  style: GoogleFonts.poppins(
-                    color: AppColors.primaryBlue,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          // Real Users Stream
-          StreamBuilder<List<UserModel>>(
-            stream: context.read<AuthService>().getAllUsers(),
-            builder: (context, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
-                ));
-              }
-              final users = snap.data ?? [];
-              if (users.isEmpty) {
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text('No registered users yet.',
-                        style: GoogleFonts.poppins(color: AppColors.textGrey, fontSize: 13)),
-                  ),
-                );
-              }
-              final recentUsers = users.take(3).toList();
-              return Column(
-                children: recentUsers.map((u) => _buildUserTile(context, u)).toList(),
+                children: recent.map((item) => _buildSubmissionTile(context, item, user)).toList(),
               );
             },
           ),
@@ -317,6 +300,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 _buildFilterChip('Pending', AppConstants.statusPending),
                 _buildFilterChip('In Progress', AppConstants.statusInProgress),
                 _buildFilterChip('Resolved', AppConstants.statusResolved),
+                _buildFilterChip('Referred', AppConstants.statusReferred),
                 _buildFilterChip('Rejected', AppConstants.statusRejected),
               ],
             ),
@@ -347,16 +331,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     children: [
                       Icon(
                         isComplaint ? Icons.campaign_outlined : Icons.lightbulb_outline,
-                        size: 64,
+                        size: 60,
                         color: AppColors.textGrey,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'No ${isComplaint ? "complaints" : "suggestions"} found',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          color: AppColors.textGrey,
-                        ),
+                        style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textGrey),
                       ),
                     ],
                   ),
@@ -367,13 +348,49 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 padding: const EdgeInsets.all(16),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
-                  return _buildSubmissionTile(context, items[index]);
+                  return _buildSubmissionTile(context, items[index], user);
                 },
               );
             },
           ),
         ),
       ],
+    );
+  }
+
+  // ── 3. REFERRED SUBMISSIONS VIEW ─────────────────────────────────────────────
+  Widget _buildReferredView(UserModel user) {
+    return StreamBuilder<List<ComplaintModel>>(
+      stream: context.read<ComplaintService>().getComplaintsByRole(user, statusFilter: AppConstants.statusReferred),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final items = snap.data ?? [];
+        if (items.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.forward_to_inbox_rounded, size: 54, color: AppColors.textGrey),
+                const SizedBox(height: 12),
+                Text(
+                  'No referred complaints.',
+                  style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textGrey),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            return _buildSubmissionTile(context, items[index], user);
+          },
+        );
+      },
     );
   }
 
@@ -395,104 +412,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  // ── 3. USER MANAGEMENT VIEW ────────────────────────────────────────────────
-  Widget _buildUserManagementView() {
-    return StreamBuilder<List<UserModel>>(
-      stream: context.read<AuthService>().getAllUsers(),
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final users = snap.data ?? [];
-        if (users.isEmpty) {
-          return Center(
-            child: Text('No registered users found.',
-                style: GoogleFonts.poppins(color: AppColors.textGrey)),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: users.length,
-          itemBuilder: (context, index) {
-            final u = users[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: u.isAdmin ? AppColors.primaryBlue : Colors.grey.shade300,
-                  child: Icon(
-                    u.isAdmin ? Icons.admin_panel_settings : Icons.person,
-                    color: u.isAdmin ? Colors.white : Colors.grey.shade700,
-                  ),
-                ),
-                title: Text(u.name, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14)),
-                subtitle: Text('${u.email}  •  Role: ${u.role.toUpperCase()}',
-                    style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textGrey)),
-                trailing: Switch(
-                  value: u.isActive,
-                  activeColor: AppColors.greenCard,
-                  onChanged: (val) async {
-                    await context.read<AuthService>().toggleUserStatus(u.uid, u.isActive);
-                  },
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // ── 4. ADMIN MANAGEMENT VIEW ────────────────────────────────────────────────
-  Widget _buildAdminManagementView() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Existing Department Admins',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 10),
-          StreamBuilder<List<UserModel>>(
-            stream: context.read<AuthService>().getAdmins(),
-            builder: (context, snap) {
-              final admins = snap.data ?? [];
-              if (admins.isEmpty) {
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text('No department admins created yet.',
-                        style: GoogleFonts.poppins(color: AppColors.textGrey, fontSize: 12)),
-                  ),
-                );
-              }
-              return Column(
-                children: admins.map((admin) => Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: const Icon(Icons.admin_panel_settings_rounded, color: AppColors.primaryBlue),
-                    title: Text(admin.name, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${admin.email}\nDepartment: ${admin.department ?? "N/A"}',
-                        style: GoogleFonts.poppins(fontSize: 11)),
-                  ),
-                )).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── 5. REPORTS & ANALYTICS VIEW ─────────────────────────────────────────────
+  // ── 4. REPORTS & ANALYTICS VIEW ─────────────────────────────────────────────
   Widget _buildReportsView(UserModel user) {
     return StreamBuilder<Map<String, int>>(
       stream: context.read<ComplaintService>().getRealtimeAnalytics(user),
@@ -502,6 +422,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         final resolved = data['resolved'] ?? 0;
         final pending = data['pending'] ?? 0;
         final inProgress = data['inProgress'] ?? 0;
+        final referred = data['referred'] ?? 0;
         final rejected = data['rejected'] ?? 0;
 
         final resolutionRate = total > 0 ? ((resolved / total) * 100).toStringAsFixed(1) : '0';
@@ -521,28 +442,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Resolution Efficiency', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13)),
+                    Text('${user.departmentName ?? "Department"} Resolution Rate', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13)),
                     const SizedBox(height: 4),
                     Text('$resolutionRate%',
                         style: GoogleFonts.poppins(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Text(
-  'Total Submissions Received: $total',
-  style: GoogleFonts.poppins(
-    color: Colors.white.withValues(alpha: 0.9),
-    fontSize: 12,
-  ),
-),
+                      'Total Department Submissions: $total',
+                      style: GoogleFonts.poppins(color: Colors.white.withValues(alpha: 0.9), fontSize: 12),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
 
-              Text('Status Breakdown', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('Department Status Breakdown', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 12),
 
               _buildReportCard('Pending Review', '$pending', const Color(0xFFEF5350), Icons.hourglass_top),
               _buildReportCard('Under Process', '$inProgress', AppColors.primaryBlue, Icons.sync),
+              _buildReportCard('Referred to Super Admin', '$referred', const Color(0xFF7B1FA2), Icons.forward_to_inbox_rounded),
               _buildReportCard('Successfully Resolved', '$resolved', const Color(0xFF66BB6A), Icons.check_circle_outline),
               _buildReportCard('Rejected', '$rejected', Colors.grey.shade700, Icons.cancel_outlined),
             ],
@@ -555,29 +474,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildReportCard(String title, String count, Color color, IconData icon) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 24),
+              Icon(icon, color: color, size: 22),
               const SizedBox(width: 12),
-              Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14)),
+              Text(title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13)),
             ],
           ),
-          Text(count, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 20, color: color)),
+          Text(count, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: color)),
         ],
       ),
     );
   }
 
-  // ── 6. NOTIFICATIONS LOG VIEW ────────────────────────────────────────────────
+  // ── 5. NOTIFICATIONS LOG VIEW ────────────────────────────────────────────────
   Widget _buildNotificationsLogView(UserModel user) {
     return StreamBuilder<List<ComplaintModel>>(
       stream: context.read<ComplaintService>().getComplaintsByRole(user),
@@ -598,7 +517,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 leading: const Icon(Icons.notifications_active_outlined, color: AppColors.primaryBlue),
                 title: Text('New ${item.type.toUpperCase()}: ${item.category}', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13)),
                 subtitle: Text('ID: ${item.complaintId}  •  ${fmt.format(item.createdAt)}', style: GoogleFonts.poppins(fontSize: 11)),
-                onTap: () => _showSubmissionDetailModal(context, item),
+                onTap: () => _showSubmissionDetailModal(context, item, user),
               ),
             );
           },
@@ -608,12 +527,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   // ── REUSABLE SUBMISSION TILE ─────────────────────────────────────────────────
-  Widget _buildSubmissionTile(BuildContext context, ComplaintModel item) {
+  Widget _buildSubmissionTile(BuildContext context, ComplaintModel item, UserModel user) {
     final bool isComplaint = item.type.toLowerCase() == 'complaint';
     final fmt = DateFormat('dd MMM, hh:mm a');
 
     return GestureDetector(
-      onTap: () => _showSubmissionDetailModal(context, item),
+      onTap: () => _showSubmissionDetailModal(context, item, user),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -623,7 +542,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           border: Border.all(color: Colors.white, width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryBlue.withOpacity(0.05),
+              color: AppColors.primaryBlue.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -635,7 +554,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (isComplaint ? const Color(0xFFEF5350) : const Color(0xFF26A69A)).withOpacity(0.12),
+                color: (isComplaint ? const Color(0xFFEF5350) : const Color(0xFF26A69A)).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -667,7 +586,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   Row(
                     children: [
                       Icon(
-                        item.isAnonymous ? Icons.person_off_outlined : Icons.person_outline_rounded,
+                        item.isAnonymous ? Icons.lock_outline_rounded : Icons.person_outline_rounded,
                         size: 13,
                         color: item.isAnonymous ? Colors.deepOrange : AppColors.primaryBlue,
                       ),
@@ -688,7 +607,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text('ID: ${item.complaintId}  •  Dept: ${item.department}',
+                  Text('ID: ${item.complaintId}  •  Dept: ${item.departmentName}',
                       style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textGrey, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 4),
                   Text(
@@ -708,49 +627,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildUserTile(BuildContext context, UserModel u) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
-            child: Text(u.name.isNotEmpty ? u.name[0].toUpperCase() : 'U', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 12)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(u.name, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13)),
-                Text(u.email, style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textGrey)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: u.isActive ? Colors.green.shade50 : Colors.red.shade50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              u.isActive ? 'Active' : 'Disabled',
-              style: GoogleFonts.poppins(fontSize: 10, color: u.isActive ? Colors.green : Colors.red, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── SUBMISSION DETAIL & UPDATE MODAL ───────────────────────────────────────
-  void _showSubmissionDetailModal(BuildContext context, ComplaintModel item) {
+  // ── SUBMISSION DETAIL & UPDATE MODAL (WITH REFERRAL WORKFLOW) ────────────────
+  void _showSubmissionDetailModal(BuildContext context, ComplaintModel item, UserModel user) {
     String selectedStatus = item.status;
     final replyCtrl = TextEditingController(text: item.adminReply ?? '');
     bool isSaving = false;
@@ -798,13 +676,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     Row(
                       children: [
                         Icon(
-                          item.isAnonymous ? Icons.person_off_outlined : Icons.person_outline_rounded,
+                          item.isAnonymous ? Icons.lock_outline_rounded : Icons.person_outline_rounded,
                           size: 14,
                           color: item.isAnonymous ? Colors.deepOrange : AppColors.primaryBlue,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Student: ${item.isAnonymous || item.userName == null || item.userName!.trim().isEmpty ? "Anonymous" : item.userName}',
+                          'Student: ${item.isAnonymous || item.userName == null || item.userName!.trim().isEmpty ? "Anonymous Student" : item.userName}',
                           style: GoogleFonts.poppins(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -815,10 +693,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text('Type: ${item.type.toUpperCase()}  •  Category: ${item.category}', style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textGrey)),
-                    Text('Department: ${item.department}', style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textGrey)),
+                    Text('Department: ${item.departmentName}', style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textGrey)),
                     const Divider(height: 24),
 
-                    Text('User Description:', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text('Description:', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 4),
                     Container(
                       width: double.infinity,
@@ -839,20 +717,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ],
 
                     const SizedBox(height: 20),
+
+                    // ── Status Update Section ───────────────────────────────
                     Text('Update Status:', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 8),
 
                     DropdownButtonFormField<String>(
-                      value: selectedStatus,
+                      initialValue: selectedStatus,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       items: [
-                        DropdownMenuItem(value: AppConstants.statusPending, child: Text(AppConstants.statusPending)),
+                        DropdownMenuItem(value: AppConstants.statusPending,    child: Text(AppConstants.statusPending)),
                         DropdownMenuItem(value: AppConstants.statusInProgress, child: Text(AppConstants.statusInProgress)),
-                        DropdownMenuItem(value: AppConstants.statusResolved, child: Text(AppConstants.statusResolved)),
-                        DropdownMenuItem(value: AppConstants.statusRejected, child: Text(AppConstants.statusRejected)),
+                        DropdownMenuItem(value: AppConstants.statusResolved,   child: Text(AppConstants.statusResolved)),
+                        DropdownMenuItem(value: AppConstants.statusRejected,   child: Text(AppConstants.statusRejected)),
                       ],
                       onChanged: (val) {
                         if (val != null) setModalState(() => selectedStatus = val);
@@ -860,44 +740,173 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
 
                     const SizedBox(height: 16),
-                    Text('Admin Response / Reply Note:', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text('Department Official Response:', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: replyCtrl,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        hintText: 'Enter official admin response for the user...',
+                        hintText: 'Enter official department reply note for the student...',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.all(12),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
-                    PrimaryButton(
-                      text: 'Save Status Update',
-                      isLoading: isSaving,
-                      onPressed: () async {
-                        setModalState(() => isSaving = true);
-                        final success = await context.read<ComplaintService>().updateComplaintStatus(
-                          complaintId: item.complaintId,
-                          newStatus: selectedStatus,
-                          adminReply: replyCtrl.text.trim(),
-                        );
-                        setModalState(() => isSaving = false);
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(success ? 'Status updated successfully!' : 'Failed to update status.'),
-                              backgroundColor: success ? AppColors.greenCard : AppColors.redCard,
+                    // Action Buttons Row: Save Status & Refer to Super Admin
+                    Row(
+                      children: [
+                        Expanded(
+                          child: PrimaryButton(
+                            text: 'Save Status',
+                            isLoading: isSaving,
+                            onPressed: () async {
+                              setModalState(() => isSaving = true);
+                              final success = await context.read<ComplaintService>().updateComplaintStatus(
+                                complaintId: item.complaintId,
+                                newStatus:   selectedStatus,
+                                adminReply:  replyCtrl.text.trim(),
+                                admin:       user,
+                              );
+                              setModalState(() => isSaving = false);
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(success ? 'Status updated successfully!' : 'Failed to update status.'),
+                                    backgroundColor: success ? AppColors.greenCard : AppColors.redCard,
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        // ── "Refer to Super Admin" Button ─────────────────────
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF7B1FA2),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                          );
-                        }
-                      },
+                            icon: const Icon(Icons.forward_to_inbox_rounded, size: 18),
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'Refer to Super Admin',
+                                style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 12),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(modalCtx);
+                              _showReferralDialog(context, item, user);
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ── REFERRAL DIALOG (MANDATORY REASON) ───────────────────────────────────────
+  void _showReferralDialog(BuildContext context, ComplaintModel item, UserModel user) {
+    final reasonCtrl = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dlgCtx) {
+        return StatefulBuilder(
+          builder: (context, setDlgState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  const Icon(Icons.forward_to_inbox_rounded, color: Color(0xFF7B1FA2)),
+                  const SizedBox(width: 8),
+                  Text('Refer to Super Admin', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Escalate ${item.complaintId} to University Administration.',
+                      style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textGrey),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Referral Reason (Mandatory) *',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textDark),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: reasonCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Department cannot resolve because university-level budget approval is required...',
+                        hintStyle: GoogleFonts.poppins(fontSize: 12, color: AppColors.textGrey),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        contentPadding: const EdgeInsets.all(10),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dlgCtx),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7B1FA2)),
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (reasonCtrl.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please provide a referral reason.'),
+                                backgroundColor: AppColors.redCard,
+                              ),
+                            );
+                            return;
+                          }
+
+                          setDlgState(() => isSubmitting = true);
+                          final success = await context.read<ComplaintService>().referComplaintToSuperAdmin(
+                            complaintId:    item.complaintId,
+                            referralReason: reasonCtrl.text.trim(),
+                            admin:          user,
+                          );
+                          setDlgState(() => isSubmitting = false);
+
+                          if (context.mounted) {
+                            Navigator.pop(dlgCtx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(success ? 'Complaint successfully referred to Super Admin!' : 'Failed to refer complaint.'),
+                                backgroundColor: success ? AppColors.greenCard : AppColors.redCard,
+                              ),
+                            );
+                          }
+                        },
+                  child: isSubmitting
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Confirm Referral', style: TextStyle(color: Colors.white)),
+                ),
+              ],
             );
           },
         );
@@ -913,177 +922,103 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       type: BottomNavigationBarType.fixed,
       selectedItemColor: AppColors.primaryBlue,
       unselectedItemColor: AppColors.textGrey,
-      selectedLabelStyle: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.w600),
-      unselectedLabelStyle: GoogleFonts.poppins(fontSize: 10),
+      selectedLabelStyle: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600),
+      unselectedLabelStyle: GoogleFonts.poppins(fontSize: 11),
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.campaign_outlined),
-          label: 'Manage\nComplaints',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.lightbulb_outline_rounded),
-          label: 'Review\nSuggestions',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline_rounded),
-          label: 'User\nManagement',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded),      label: 'Overview'),
+        BottomNavigationBarItem(icon: Icon(Icons.campaign_rounded),       label: 'Complaints'),
+        BottomNavigationBarItem(icon: Icon(Icons.lightbulb_rounded),      label: 'Suggestions'),
+        BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded),       label: 'Reports'),
       ],
     );
   }
 
-  // ── NAVIGATION DRAWER ───────────────────────────────────────────────────────
+  // ── DRAWER ───────────────────────────────────────────────────────────────────
   Drawer _buildDrawer(BuildContext context, UserModel user) {
     return Drawer(
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 50, 16, 20),
-            color: AppColors.primaryBlue,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Image.asset('assets/icons/icon.png', height: 40, width: 40),
-                ),
-                const SizedBox(height: 12),
-                Text('ASCMA',
-                    style: GoogleFonts.poppins(
-                        color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
-                Text('Anonymous Suggestions & Complaints\nManagement Application',
-                    style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10)),
-                const SizedBox(height: 8),
-                Text('Admin: ${user.name}', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Container(
-              color: AppColors.primaryBlue,
-              child: ListView(
-                padding: EdgeInsets.zero,
+      child: Container(
+        color: AppColors.primaryBlue,
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
+              color: AppColors.primaryDark,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _DrawerItem(
-                    icon: Icons.dashboard_outlined,
-                    title: 'Dashboard',
-                    isSelected: _currentViewIndex == 0,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _switchView(0);
-                    },
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Colors.white,
+                    child: Text(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'A',
+                      style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                    ),
                   ),
-                  _DrawerItem(
-                    icon: Icons.report_problem_outlined,
-                    title: 'Complaints',
-                    isSelected: _currentViewIndex == 1,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _switchView(1);
-                    },
+                  const SizedBox(height: 12),
+                  Text(
+                    user.name,
+                    style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
-                  _DrawerItem(
-                    icon: Icons.lightbulb_outline,
-                    title: 'Suggestions',
-                    isSelected: _currentViewIndex == 2,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _switchView(2);
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.people_outline,
-                    title: 'User Management',
-                    isSelected: _currentViewIndex == 3,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _switchView(3);
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.analytics_outlined,
-                    title: 'Reports & Analytics',
-                    isSelected: _currentViewIndex == 5,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _switchView(5);
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.notifications_none,
-                    title: 'Notifications Log',
-                    isSelected: _currentViewIndex == 6,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _switchView(6);
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.admin_panel_settings_outlined,
-                    title: 'Admin Management',
-                    isSelected: _currentViewIndex == 4,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _switchView(4);
-                    },
-                  ),
-                  const Divider(color: Colors.white24),
-                  ListTile(
-                    leading: const Icon(Icons.logout_rounded, color: Colors.white),
-                    title: Text('Log Out', style: GoogleFonts.poppins(color: Colors.white, fontSize: 14)),
-                    onTap: () async {
-                      await context.read<AuthService>().signOut();
-                      if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                          (_) => false,
-                        );
-                      }
-                    },
+                  Text(
+                    user.departmentName ?? 'Department Admin',
+                    style: GoogleFonts.poppins(fontSize: 12, color: Colors.white70),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _drawerItem(icon: Icons.dashboard_outlined, title: 'Department Overview', index: 0),
+                  _drawerItem(icon: Icons.campaign_outlined, title: 'Complaints', index: 1),
+                  _drawerItem(icon: Icons.lightbulb_outline, title: 'Suggestions', index: 2),
+                  _drawerItem(icon: Icons.forward_to_inbox_rounded, title: 'Referred Queue', index: 3),
+                  _drawerItem(icon: Icons.analytics_outlined, title: 'Reports & Analytics', index: 4),
+                  _drawerItem(icon: Icons.notifications_none_rounded, title: 'Notifications Log', index: 5),
+                ],
+              ),
+            ),
+            const Divider(color: Colors.white24, height: 1),
+            ListTile(
+              leading: const Icon(Icons.logout_rounded, color: Colors.white),
+              title: Text('Logout', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+              onTap: () async {
+                await context.read<AuthService>().signOut();
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                    (_) => false,
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }
-}
 
-class _DrawerItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _DrawerItem({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    this.isSelected = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _drawerItem({required IconData icon, required String title, required int index}) {
+    final isSelected = _currentViewIndex == index;
     return ListTile(
-      leading: Icon(icon, color: isSelected ? Colors.amber : Colors.white),
+      leading: Icon(icon, color: isSelected ? Colors.white : Colors.white70),
       title: Text(
         title,
         style: GoogleFonts.poppins(
-          color: isSelected ? Colors.amber : Colors.white,
+          color: isSelected ? Colors.white : Colors.white70,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          fontSize: 14,
+          fontSize: 13,
         ),
       ),
-      selected: isSelected,
-      onTap: onTap,
+      tileColor: isSelected ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
+      onTap: () {
+        Navigator.pop(context);
+        _switchView(index);
+      },
     );
   }
 }
@@ -1093,14 +1028,14 @@ class _DashboardStatCard extends StatelessWidget {
   final String value;
   final Color color;
   final IconData icon;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   const _DashboardStatCard({
     required this.title,
     required this.value,
     required this.color,
     required this.icon,
-    this.onTap,
+    required this.onTap,
   });
 
   @override
@@ -1108,47 +1043,39 @@ class _DashboardStatCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
           boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
+            BoxShadow(color: color.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 3)),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, color: Colors.white70, size: 24),
-                  const SizedBox(height: 8),
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  value,
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 24, color: color),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ],
-              ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+              ],
             ),
+            const SizedBox(height: 6),
             Text(
-              value,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              title,
+              style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textGrey, fontWeight: FontWeight.w600, height: 1.2),
             ),
           ],
         ),

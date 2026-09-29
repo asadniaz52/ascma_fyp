@@ -133,7 +133,7 @@ class _SubmissionCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color:      Colors.black.withOpacity(0.06),
+              color:      Colors.black.withValues(alpha: 0.06),
               blurRadius: 8,
               offset:     const Offset(0, 2),
             ),
@@ -147,7 +147,7 @@ class _SubmissionCard extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color:        (isComplaint ? AppColors.redCard : AppColors.greenCard)
-                    .withOpacity(0.12),
+                    .withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -180,13 +180,35 @@ class _SubmissionCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'ID: ${complaint.complaintId}',
-                    style: GoogleFonts.poppins(
-                      fontSize:   11,
-                      color:      AppColors.primaryBlue,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'ID: ${complaint.complaintId}',
+                        style: GoogleFonts.poppins(
+                          fontSize:   11,
+                          color:      AppColors.primaryBlue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (complaint.departmentName.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryBlue.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            complaint.departmentName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primaryBlue,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(

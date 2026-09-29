@@ -69,7 +69,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          AppColors.accentBlue.withOpacity(0.15),
+                          AppColors.accentBlue.withValues(alpha: 0.15),
                           Colors.transparent,
                         ],
                       ),
@@ -83,7 +83,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           gradient:  AppColors.primaryGradient,
                           boxShadow: [
                             BoxShadow(
-                              color:      AppColors.primaryBlue.withOpacity(0.4),
+                              color:      AppColors.primaryBlue.withValues(alpha: 0.4),
                               blurRadius: 24,
                               offset:     const Offset(0, 8),
                             ),
