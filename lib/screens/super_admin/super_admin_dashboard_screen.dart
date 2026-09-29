@@ -304,6 +304,31 @@ class _AllComplaintsTab extends StatelessWidget {
                           Text(item.category,
                               style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.primaryBlue)),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(
+                                item.isAnonymous ? Icons.person_off_outlined : Icons.person_outline_rounded,
+                                size: 13,
+                                color: item.isAnonymous ? Colors.deepOrange : AppColors.primaryBlue,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  item.isAnonymous || item.userName == null || item.userName!.trim().isEmpty
+                                      ? 'Student: Anonymous'
+                                      : 'Student: ${item.userName}',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: item.isAnonymous ? Colors.deepOrange : AppColors.textDark,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
                           Text('ID: ${item.complaintId}  •  Dept: ${item.department}',
                               style: GoogleFonts.poppins(
                                   fontSize: 11, color: AppColors.textGrey)),
@@ -345,6 +370,27 @@ class _AllComplaintsTab extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  children: [
+                    Icon(
+                      item.isAnonymous ? Icons.person_off_outlined : Icons.person_outline_rounded,
+                      size: 15,
+                      color: item.isAnonymous ? Colors.deepOrange : AppColors.primaryBlue,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Student: ${item.isAnonymous || item.userName == null || item.userName!.trim().isEmpty ? "Anonymous" : item.userName}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: item.isAnonymous ? Colors.deepOrange : AppColors.textDark,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 Text('Category: ${item.category}', style: GoogleFonts.poppins(fontSize: 13)),
                 Text('Department: ${item.department}', style: GoogleFonts.poppins(fontSize: 13)),
                 const SizedBox(height: 10),

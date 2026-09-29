@@ -664,6 +664,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ],
                   ),
                   const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        item.isAnonymous ? Icons.person_off_outlined : Icons.person_outline_rounded,
+                        size: 13,
+                        color: item.isAnonymous ? Colors.deepOrange : AppColors.primaryBlue,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          item.isAnonymous || item.userName == null || item.userName!.trim().isEmpty
+                              ? 'Student: Anonymous'
+                              : 'Student: ${item.userName}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: item.isAnonymous ? Colors.deepOrange : AppColors.textDark,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
                   Text('ID: ${item.complaintId}  •  Dept: ${item.department}',
                       style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textGrey, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 4),
@@ -770,6 +794,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     const SizedBox(height: 12),
 
                     Text('Tracking ID: ${item.complaintId}', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: AppColors.primaryBlue)),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          item.isAnonymous ? Icons.person_off_outlined : Icons.person_outline_rounded,
+                          size: 14,
+                          color: item.isAnonymous ? Colors.deepOrange : AppColors.primaryBlue,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Student: ${item.isAnonymous || item.userName == null || item.userName!.trim().isEmpty ? "Anonymous" : item.userName}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: item.isAnonymous ? Colors.deepOrange : AppColors.textDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
                     Text('Type: ${item.type.toUpperCase()}  •  Category: ${item.category}', style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textGrey)),
                     Text('Department: ${item.department}', style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textGrey)),
                     const Divider(height: 24),

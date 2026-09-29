@@ -165,6 +165,12 @@ class _TrackingResult extends StatelessWidget {
 
           // ── Details ────────────────────────────────────────────────────────
           _DetailRow(label: 'Tracking ID',   value: complaint.complaintId),
+          _DetailRow(
+            label: 'Submitted by',
+            value: complaint.isAnonymous || complaint.userName == null || complaint.userName!.trim().isEmpty
+                ? 'Anonymous'
+                : complaint.userName!,
+          ),
           _DetailRow(label: 'Submitted on',  value: fmt.format(complaint.createdAt)),
           _DetailRow(label: 'Category',      value: complaint.type == 'complaint' ? 'Complaint' : 'Suggestion'),
           _DetailRow(label: 'Sub-Category',  value: complaint.category),
